@@ -2,6 +2,7 @@
 #include "DSSTTracker.h"
 #include <algorithm>
 #include <vector>
+#include <fftw3.h>
 #include "imResample.cpp"
 #include "gradient.h"
 

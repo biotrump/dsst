@@ -80,7 +80,7 @@ namespace ctr { // correlation tracker namespace
 		void extract_training_sample_info(unsigned char* dataYorR, unsigned char* dataG, unsigned char* dataB, bool first);
 		void extract_translation_test_sample(unsigned char* dataYorR, unsigned char* dataG, unsigned char* dataB);
 		void extract_scale_test_sample(unsigned char* dataYorR, unsigned char* dataG, unsigned char* dataB);
-		void dsst_tracker::extract_image(unsigned char* dataYorR, unsigned char* dataG, unsigned char* dataB,
+		void extract_image(unsigned char* dataYorR, unsigned char* dataG, unsigned char* dataB,
 			                             int pw, int ph, int xm, int xp, int ym, int yp, float *im_patch, int d);
 
 		// вспомогательные переменные

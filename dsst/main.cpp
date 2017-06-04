@@ -1,24 +1,28 @@
-
+#include <iostream>
+#include <algorithm>
 #include "DSSTTracker.h"
 
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/highgui/highgui_c.h>
-#include <opencv/cv.h>
-#include <Windows.h>
+#ifdef USE_OPENCV
+#include <opencv2/opencv.hpp>
+// CV_MAJOR_VERSION is defined in path_to_opencv/modules/core/include/opencv2/core.hpp
+using namespace cv;
+#endif
+
+//#include <Windows.h>
 
 using namespace std;
-using namespace cv;
+//using namespace cv;
 using namespace ctr;
 
 int keyboard;
 void processImagesDSST(char* fistFrameFilename);
-
+#ifdef WINDOWS
 LARGE_INTEGER frequency;        // ticks per second
 LARGE_INTEGER t1, t2;           // ticks
+#endif
 double elapsedTime;
 
-int main()
+int main(int argc, char **argv)
 { 
 	//processImagesDSST("ball\\00000000.jpg");
     //processImagesDSST("basketball\\00000000.jpg");
@@ -45,7 +49,11 @@ int main()
 	//processImagesDSST("trellis\\00000000.jpg");
 	//processImagesDSST("tunnel\\00000000.jpg");
 	//processImagesDSST("woman1\\00000000.jpg");
-	  processImagesDSST("D:\\DATA\\data4DSST\\dog24m\\00000000.jpg"); 
+	//processImagesDSST("D:\\DATA\\data4DSST\\dog24m\\00000000.jpg"); 
+	if(argc>=2)
+		processImagesDSST(argv[1]);
+	else
+		processImagesDSST("dog.mp4");
 	//processImagesDSST("dog24s\\00000000.jpg"); // для тестирования производительности и утечек
 
 	//processImagesDSST("a3_demo6\\00000000.jpg");
@@ -59,19 +67,33 @@ void processImagesDSST(char* fistFrameFilename) {
 
 	bool use_gray = true; // true - fast but maybe less precise, false - slower tracking but better
 	cv::Mat Im;
+#if 1
+    cv::VideoCapture cap;
+    cap.open(0);
+	cap.set(CV_CAP_PROP_FRAME_WIDTH, 640);
+	cap.set(CV_CAP_PROP_FRAME_HEIGHT, 480);
+#else
 	if (use_gray == true) 
         Im = imread(fistFrameFilename, CV_LOAD_IMAGE_GRAYSCALE);
 	else
 		Im = imread(fistFrameFilename);
 
 	if (Im.empty()){cerr << "Unable to open first image frame: " << fistFrameFilename << endl; exit(EXIT_FAILURE);}
+#endif
+	
 	cv::Mat ImRGBRes; keyboard = 0;
+	cv::Mat frame;
 	dsst_tracker dsst; bool init = false;
 	unsigned char *dataYorR; unsigned char *dataG; unsigned char *dataB;
 	string fn(fistFrameFilename); 
 	while ((char)keyboard != 27)
 	{
-		cv::Size dsize = cv::Size(Im.cols * 2, Im.rows * 2);
+		cap >> frame;
+		cv::flip(frame, frame, 1);
+		//cv::cvtColor(frame, Im, CV_BGR2GRAY);
+		cv::cvtColor(frame, Im, CV_RGB2GRAY);
+		//cv::Size dsize = cv::Size(Im.cols * 2, Im.rows * 2);
+		cv::Size dsize = cv::Size(Im.cols , Im.rows );
 		cv::resize(Im, ImRGBRes, dsize, 0, 0, INTER_LINEAR);
 		if (use_gray == true) {}
 		else
@@ -158,16 +180,18 @@ void processImagesDSST(char* fistFrameFilename) {
 		double fps = 0;
 
 		if (init == true) {
-			QueryPerformanceFrequency(&frequency);
-			QueryPerformanceCounter(&t1);
-
+			#ifdef WINDOWS
+				QueryPerformanceFrequency(&frequency);
+				QueryPerformanceCounter(&t1);
+			#endif
 			if (use_gray == true)
 				dsst.findNextLocation(dataYorR);
 			else
 				dsst.findNextLocation(dataYorR, dataG, dataB);
-
-			QueryPerformanceCounter(&t2);
-			fps = double(frequency.QuadPart) / double((t2.QuadPart - t1.QuadPart));
+			#ifdef WINDOWS
+				QueryPerformanceCounter(&t2);
+				fps = double(frequency.QuadPart) / double((t2.QuadPart - t1.QuadPart));
+			#endif
 		}
 
 		dsst.getNewLocationCoordinates(cx, cy, rw, rh, score);
@@ -193,6 +217,7 @@ void processImagesDSST(char* fistFrameFilename) {
 		oss << setfill('0') << setw(8) << (frameNumber + 1);
 		string nextFrameNumberString = oss.str();
 		string nextFrameFilename = prefix + nextFrameNumberString + suffix; 
+#if 0
 		if (use_gray == true)
 			Im = imread(nextFrameFilename, CV_LOAD_IMAGE_GRAYSCALE); 
 		else	
@@ -200,6 +225,7 @@ void processImagesDSST(char* fistFrameFilename) {
 		if (Im.empty()){cerr << "Unable to open image frame: " << nextFrameFilename << endl; break; }
 		else 
 			fn.assign(nextFrameFilename); 
+#endif
 	}
 
 	ImRGBRes.release();Im.release();
